@@ -1,36 +1,61 @@
 schemaVersion: 2.2.0
 metadata:
-  name: python
-  version: 1.0.0
-parent:
-  uri: registry.access.redhat.com/ubi8/nodejs-16:latest
-  components:
-    - name: tools
-      container:
-        env:
-          - name: SHELL
-            value: "/bin/bash"
-          - name: HISTFILE
-            value: "/home/user/.bash_history"
-        memoryLimit: 4Gi
-        cpuLimit: 3000m
-        endpoints:
-          - name: app
-            targetPort: 8080
-            path: /
-            protocol: http
-            exposure: public
-            secure: true
-            attributes:
-              urlRewriteSupported: false
-          - name: debug
-            targetPort: 5858
-            protocol: tcp
-            exposure: none
-        volumeMounts:
-          # --- START: Updated for collision test with two ConfigMaps ---
-          - name: my-configmap-one-volume
-            path: /etc/shared-data-collision
-          - name: my-configmap-two-volume
-            path: /etc/shared-data-collision
-          # --- END: Updated for collision test ---
+  name: tools-devfile
+components:
+  - name: tools
+    container:
+      image: 'registry.access.redhat.com/ubi8/nodejs-16:latest' # Example image
+      env:
+        - name: SHELL
+          value: "/bin/bash"
+        - name: HISTFILE
+          value: "/home/user/.bash_history"
+      memoryLimit: 1Gi
+      cpuLimit: 1000m
+      endpoints:
+        - name: app
+          targetPort: 8080 # Example port
+          path: /
+          protocol: http
+          exposure: public
+          secure: true
+          attributes:
+            urlRewriteSupported: false
+        - name: debug
+          targetPort: 9000 # Example port
+          protocol: tcp
+          exposure: none
+      # Use a single volumeMount for the projected volume
+      volumeMounts:
+        - name: shared-config-volume
+          path: /etc/shared
+  
+  # Define the projected volume using the kubernetes component
+  - name: shared-config-volume
+    kubernetes:
+      inlined: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: my-pod-with-projected-volume
+        spec:
+          containers:
+          - name: my-container
+            image: "registry.access.redhat.com/ubi8/nodejs-16:latest"
+            volumeMounts:
+            - name: shared-config-volume
+              mountPath: /etc/shared
+          volumes:
+          - name: shared-config-volume
+            projected:
+              sources:
+              - configMap:
+                  name: configmap1
+                  items:
+                  - key: config1.txt # Key from the ConfigMap
+                    path: config1.txt # Path inside the mount
+              - configMap:
+                  name: configmap2
+                  items:
+                  - key: config2.txt # Key from the ConfigMap
+                    path: config2.txt # Path inside the mount
