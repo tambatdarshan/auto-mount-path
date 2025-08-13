@@ -5,19 +5,20 @@ components:
   - name: my-container
     container:
       image: 'registry.access.redhat.com/ubi8/nodejs-16:latest'
-      # Volume mounts are defined here
+      # volumeMounts go inside the container component
       volumeMounts:
-        - name: my-config-volume
+        - name: config-volume
           path: /app/config
-      # Mount the two ConfigMaps using a dedicated volume
-      volumes:
-        - name: my-config-volume
-          configMaps:
-            - configMapName: my-config-map-a
-              items:
-                - key: file-a.txt
-                  path: configs-a/file-a.txt
-            - configMapName: my-config-map-b
-              items:
-                - key: file-b.txt
-                  path: configs-b/file-b.txt
+
+  # volumes are defined as separate components
+  - name: config-volume
+    volume:
+      configMaps:
+        - configMapName: my-config-map-a
+          items:
+            - key: file-a.txt
+              path: configs-a/file-a.txt
+        - configMapName: my-config-map-b
+          items:
+            - key: file-b.txt
+              path: configs-b/file-b.txt
