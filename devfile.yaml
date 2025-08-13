@@ -5,20 +5,32 @@ components:
   - name: my-container
     container:
       image: 'registry.access.redhat.com/ubi8/nodejs-16:latest'
-      # volumeMounts go inside the container component
+      # Volume mounts go inside the container component
       volumeMounts:
-        - name: config-volume
+        - name: my-config-volume
           path: /app/config
 
-  # volumes are defined as separate components
-  - name: config-volume
-    volume:
-      configMaps:
-        - configMapName: my-config-map-a
-          items:
-            - key: file-a.txt
-              path: configs-a/file-a.txt
-        - configMapName: my-config-map-b
-          items:
-            - key: file-b.txt
-              path: configs-b/file-b.txt
+  # This component defines the Kubernetes volume from a ConfigMap
+  - name: my-config-volume
+    kubernetes:
+      inlined: |
+        kind: ConfigMap
+        apiVersion: v1
+        metadata:
+          name: my-config-map-a
+        data:
+          file-a.txt: |
+            This is the content from config map A.
+---
+# You can define a second Kubernetes component for the second ConfigMap
+components:
+  - name: my-config-volume-b
+    kubernetes:
+      inlined: |
+        kind: ConfigMap
+        apiVersion: v1
+        metadata:
+          name: my-config-map-b
+        data:
+          file-b.txt: |
+            This is the content from config map B.
